@@ -388,6 +388,45 @@ controller_stop_rumble(pgControllerObject *self, PyObject *_null)
     Py_RETURN_NONE;
 }
 
+static PyObject *
+controller_has_led(pgControllerObject *controller, PyObject *_null)
+{
+    CONTROLLER_INIT_CHECK();
+    if (!self->controller) {
+        return RAISE(pgExc_SDLError, "Controller is not initialized");
+    }
+    SDL_bool success = SDL_GameControllerHasLED(self->controller);
+
+    return PyBool_FromLong(success == SDL_TRUE);
+}
+
+static PyObject *
+controller_set_led(pgControllerObject *controller, PyObject *args, PyObject *kwargs)
+{
+    Uint8 rgba[];
+    PyObject *rgba_obj;
+
+    static char *keywords[] = {"color", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", keywords, &axis)) {
+        return NULL;
+    }
+
+    CONTROLLER_INIT_CHECK();
+    if (!self->controller) {
+        return RAISE(pgExc_SDLError, "Controller is not initialized");
+    }
+
+    if (!pg_RGBAFromObjEx(rgba_obj, &color, PG_COLOR_HANDLE_ALL)) {
+        return NULL;
+    }
+
+    int success = SDL_GameControllerSetLED(
+        self->controller, rgba[0], rgba[1], rgba[2]);
+
+    return PyBool_FromLong(success == 0);
+}
+
 static PyMethodDef controller_methods[] = {
     {"from_joystick", (PyCFunction)controller_from_joystick,
      METH_CLASS | METH_VARARGS | METH_KEYWORDS,
@@ -414,6 +453,10 @@ static PyMethodDef controller_methods[] = {
      DOC_SDL2_CONTROLLER_CONTROLLER_RUMBLE},
     {"stop_rumble", (PyCFunction)controller_stop_rumble, METH_NOARGS,
      DOC_SDL2_CONTROLLER_CONTROLLER_STOPRUMBLE},
+    {"has_led", (PyCFunction)controller_has_led, METH_NOARGS,
+     DOC_SDL2_CONTROLLER_CONTROLLER_HASLED},
+    {"set_led", (PyCFunction)controller_set_led, METH_VARARGS | METH_KEYWORDS,
+     DOC_SDL2_CONTROLLER_CONTROLLER_SETLED},
     {NULL, NULL, 0, NULL}};
 
 static PyMemberDef controller_members[] = {

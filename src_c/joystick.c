@@ -531,6 +531,45 @@ joy_get_hat(PyObject *self, PyObject *args)
     return pg_tuple_couple_from_values_int(px, py);
 }
 
+static PyObject *
+joy_has_led(PyObject *self, PyObject *_null)
+{
+    JOYSTICK_INIT_CHECK();
+    if (!joy) {
+        return RAISE(pgExc_SDLError, "Joystick not initialized");
+    }
+    SDL_bool success = SDL_JoystickHasLED(self->controller);
+
+    return PyBool_FromLong(success == SDL_TRUE);
+}
+
+static PyObject *
+joy_set_led(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    Uint8 rgba[];
+    PyObject *rgba_obj;
+
+    static char *keywords[] = {"color", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", keywords, &axis)) {
+        return NULL;
+    }
+
+    JOYSTICK_INIT_CHECK();
+    if (!joy) {
+        return RAISE(pgExc_SDLError, "Joystick not initialized");
+    }
+
+    if (!pg_RGBAFromObjEx(rgba_obj, &color, PG_COLOR_HANDLE_ALL)) {
+        return NULL;
+    }
+
+    int success = SDL_JoystickSetLED(
+        self->controller, rgba[0], rgba[1], rgba[2]);
+
+    return PyBool_FromLong(success == 0);
+}
+
 static PyMethodDef joy_methods[] = {
     {"init", joy_init, METH_NOARGS, DOC_JOYSTICK_JOYSTICK_INIT},
     {"quit", joy_quit, METH_NOARGS, DOC_JOYSTICK_JOYSTICK_QUIT},
@@ -560,7 +599,8 @@ static PyMethodDef joy_methods[] = {
     {"get_numhats", joy_get_numhats, METH_NOARGS,
      DOC_JOYSTICK_JOYSTICK_GETNUMHATS},
     {"get_hat", joy_get_hat, METH_VARARGS, DOC_JOYSTICK_JOYSTICK_GETHAT},
-
+    {"has_led", joy_has_led, METH_NOARGS, DOC_JOYSTICK_JOYSTICK_HASLED},
+    {"set_led", joy_set_led, METH_VARARGS, DOC_JOYSTICK_JOYSTICK_SETLED},
     {NULL, NULL, 0, NULL}};
 
 static PyTypeObject pgJoystick_Type = {
